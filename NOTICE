@@ -1,0 +1,22 @@
+AGTF30 run-to-failure dataset - generation code
+Copyright 2026 W. D. Dasun Yasantha, Amila Thibbotuwawa and Peter Nielsen
+
+This code is licensed under the Apache License, Version 2.0 (see LICENSE).
+
+It builds on, but does not include, the following NASA software. Both are licensed under the Apache License,
+Version 2.0:
+
+  - AGTF30 (Advanced Geared Turbofan 30,000 lbf engine model), https://github.com/nasa/AGTF30
+    Copyright United States Government as represented by the Administrator of the National Aeronautics and
+    Space Administration.
+  - T-MATS (Toolbox for the Modeling and Analysis of Thermodynamic Systems), https://github.com/nasa/T-MATS
+    Copyright United States Government as represented by the Administrator of the National Aeronautics and
+    Space Administration.
+
+No AGTF30 or T-MATS source code, and no C code generated from their models, is distributed here. The scripts in
+scripts/agtf30_cbuild/ generate that C code on the user's own copy of AGTF30 and T-MATS with MATLAB Simulink Coder;
+anyone who redistributes the generated code must keep the AGTF30 and T-MATS licence and notice texts with it.
+
+Flight conditions are taken from the N-CMAPSS dataset (M. Arias Chao, C. Kulkarni, K. Goebel, O. Fink, "Aircraft
+Engine Run-to-Failure Dataset under Real Flight Conditions for Prognostics and Diagnostics", Data 2021, 6(1), 5),
+which is not distributed here either.
