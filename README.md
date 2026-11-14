@@ -4,7 +4,7 @@ Code that made the AGTF30 run-to-failure dataset: 480 simulated NASA AGTF30 gear
 new to end of life on recorded N-CMAPSS flights, in eight subsets of 60 engines (v1.0: FAN, HPC, HPT, LPT, MIX;
 v1.1: HPTLPT, LPCHPC, ALL). The files use the N-CMAPSS layout.
 
-- Paper: *Run-to-failure simulations of 480 geared turbofan engines under real flight conditions* (Scientific Data,
+- Paper: *Run-to-failure simulations of 480 geared turbofan engines under recorded flight conditions* (Scientific Data,
   in preparation).
 - Data: Zenodo (DOI to be added).
 
