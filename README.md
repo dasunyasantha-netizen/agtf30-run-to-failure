@@ -7,6 +7,7 @@ v1.1: HPTLPT, LPCHPC, ALL). The files use the N-CMAPSS layout.
 - Paper: *Run-to-failure simulations of 480 geared turbofan engines under recorded flight conditions* (Scientific Data,
   in preparation).
 - Data: Zenodo (DOI to be added).
+- This code, archived: https://doi.org/10.5281/zenodo.24235138 (all versions; v1.1: https://doi.org/10.5281/zenodo.24235139).
 
 ## Contents
 
