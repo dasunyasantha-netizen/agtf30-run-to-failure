@@ -17,6 +17,7 @@ v1.1: HPTLPT, LPCHPC, ALL). The files use the N-CMAPSS layout.
 | `scripts/agtf30_gen/` | Generator: flight library, engine sampler, per-flight engine loop with checkpoints, parallel/SLURM runs, merge into `.h5`, checks, drop analysis, reference-point repair | the C programs, N-CMAPSS |
 | `scripts/agtf30_release/` | Freezing the release, nested scaling subsets, statistics and figures, baseline, release check, licence files | the generated files |
 | `scripts/agtf30_learn/` | Loader (`agtf30_data.py`) and learnability check (`learn_check.py`) | numpy, h5py, torch |
+| `scripts/agtf30_mixer/` | Scenario mixer: local web page and command line to run engines to failure with the dataset recipe or your own settings, and a bit-for-bit check against the release (see "Scenario mixer") | the C programs, the flight library; numpy, h5py, scipy |
 | `notebooks/` | `example_read_one_engine.ipynb`: read one engine and plot it | numpy, h5py, matplotlib |
 
 Each script starts with a docstring that gives its purpose and command line. The letters in the file names are the
@@ -78,6 +79,144 @@ MATLAB scripts read the same variables through `cb_env.m`.
    `e6_release_check.py`, `e7_licence.py`; v1.1: `v11_release.py`.
 
 Runs on Windows default to Idle CPU priority (`--priority`).
+
+## Scenario mixer
+
+`scripts/agtf30_mixer/` is a small local web page (and a command line) that runs AGTF30 engines to failure, either
+with the dataset recipe or with your own settings (fault growth, background wear, initial wear, seed, sensor noise).
+With the dataset recipe it reproduces the released engines bit for bit. How to use the page:
+`scripts/agtf30_mixer/README.md`.
+
+The mixer needs two things that are not in this repository: the C engine programs, built from NASA's AGTF30 and
+T-MATS code, and the flight library, built from N-CMAPSS. The steps below make both from a fresh clone. They were
+tested on Windows 11 from a clean folder (see "Tested" at the end). Run the commands from the repository root in
+Git Bash (Windows) or a normal shell (Linux, macOS).
+
+**You need**
+
+- Python 3 (tested with 3.14): `pip install -r requirements.txt` (numpy, h5py and scipy are enough for the mixer).
+- MATLAB R2023b with Simulink and Simulink Coder (only for steps 2-4; other releases are untested and may change the
+  generated code), and a C compiler that MATLAB can use for MEX files (`mex -setup C`).
+- A C compiler for the engine programs: on Windows the Visual Studio 2022 Build Tools (MSVC; set `VCVARS` if
+  `vcvars64.bat` is not in the default place), on Linux gcc.
+- N-CMAPSS (NASA Prognostics Data Repository, "Turbofan Engine Degradation Simulation Data Set 2"), unpacked:
+  the folder with the `N-CMAPSS_DS*.h5` files.
+- About 7 GB of free disk (flight library 4.3 GB, build folders 0.8 GB, sources 0.2 GB, a short engine run
+  0.1-0.2 GB).
+
+**1. Sources and paths**
+
+```bash
+ROOT="$(pwd -W 2>/dev/null || pwd)"         # Git Bash: D:/... form that MATLAB and Python understand
+export AGTF30_WORK="$ROOT/work"             # all build and run folders go here (ignored by git)
+git clone https://github.com/nasa/AGTF30 work/src/AGTF30
+git -C work/src/AGTF30 checkout a1521a76
+git clone https://github.com/nasa/T-MATS work/src/T-MATS
+git -C work/src/T-MATS checkout v1.3.3
+export AGTF30_SRC="$AGTF30_WORK/src/AGTF30"
+export TMATS_DIR="$AGTF30_WORK/src/T-MATS/Trunk"
+export NCMAPSS_DIR="/path/to/N-CMAPSS/data_set"
+```
+
+Keep these variables set for every later step (MATLAB reads them too). On Windows the paths must be in the
+`D:/...` form (forward slashes), not Git Bash's `/d/...`; `pwd -W` gives that form.
+
+**2. T-MATS MEX files** (about 2 min)
+
+```bash
+matlab -batch "cd(fullfile(getenv('TMATS_DIR'),'TMATS_Library','MEX')); make_file_TMATS"
+```
+
+**3. MATLAB reference and C code generation** (about 12 min)
+
+```bash
+mkdir -p "$AGTF30_WORK/agtf30_cbuild/inputs"
+cp scripts/agtf30_cbuild/inputs/flight1800.csv "$AGTF30_WORK/agtf30_cbuild/inputs/flight_u1c1.csv"
+matlab -batch "addpath('scripts/agtf30_cbuild'); a1_reference"
+matlab -batch "addpath('scripts/agtf30_cbuild'); cb_build"
+matlab -batch "addpath('scripts/agtf30_cbuild'); cb_build('pkgs', 'gen_ss', true)"
+matlab -batch "addpath('scripts/agtf30_cbuild'); cb_build('pkgf', 'gen_fine', false, 0.0075)"
+```
+
+`a1_reference` simulates the first 1800 s of an N-CMAPSS flight in MATLAB (the reference for step 5); the three
+`cb_build` calls generate C code for the normal model, the steady-state model with extra reference-point outputs, and
+the dynamic model with a halved time step. All work happens in copies under `$AGTF30_WORK/agtf30_cbuild`; the AGTF30
+and T-MATS folders are only read. If MATLAB stops with a licence error, run the same command again.
+
+**4. Compile the two engine programs** (about 1 min)
+
+```bash
+CB="$AGTF30_WORK/agtf30_cbuild"
+mkdir -p "$CB/gen_b" "$CB/gen_f"
+cp -r "$CB/gen/AGTF30SysDyn" "$CB/gen_ss/AGTF30SysSS" "$CB/gen/ic_tables.json" "$CB/gen_b/"
+cp -r "$CB/gen_fine/AGTF30SysDyn" "$CB/gen/AGTF30SysSS" "$CB/gen/ic_tables.json" "$CB/gen_f/"
+python scripts/agtf30_cbuild/c/build_all.py --gen "$CB/gen_b" --out "$CB/bin_b" --work "$CB/work_b"
+python scripts/agtf30_cbuild/c/build_all.py --gen "$CB/gen_f" --out "$CB/bin_fine" --work "$CB/work_f"
+```
+
+`bin_b` (0.015 s step) flies every flight; `bin_fine` (0.0075 s step) is the generator's retry for a flight the
+normal program cannot finish. This is the same pairing as the dataset (`scripts/agtf30_gen/slurm/make_v11_pkg.sh`).
+
+**5. Check the programs against MATLAB** (optional, about 1 min)
+
+```bash
+python scripts/agtf30_cbuild/cb_validate.py --runs "$CB/a2" --a1 "$CB/a1" --bin "$CB/bin_b" \
+    --flight "$CB/inputs/flight_u1c1.csv"
+```
+
+Pass: every channel within a relative difference of 1e-6 of MATLAB (`$CB/a2/validation.json`).
+
+**6. Flight library** (about 1-2 min with 4 workers, 4.3 GB)
+
+```bash
+python scripts/agtf30_gen/gen_library.py --workers 4
+```
+
+It reads N-CMAPSS and the throttle tables in `bin_b`, and writes `$AGTF30_WORK/agtf30_c/library` (one `.npz` per
+N-CMAPSS unit and `index.json`). Each worker needs a few GB of memory; use fewer workers on a small computer.
+
+**7. Start the mixer**
+
+```bash
+python scripts/agtf30_mixer/mixer.py
+```
+
+It opens <http://127.0.0.1:8730> (local only; `--no-browser`, `--port`). It finds the programs and the library from
+`AGTF30_WORK` (or set `AGTF30_BIN_B`, `AGTF30_BIN_FINE`, `AGTF30_LIB`); runs go to `$AGTF30_WORK/agtf30_mixer/runs`
+(or `AGTF30_MIXER_ROOT`). Without the page:
+
+```bash
+echo '{"format": "agtf30-scenario/1", "name": "lpt43", "physics": {"families": ["LPT"], "engine_indices": [43]}}' > lpt43.json
+python scripts/agtf30_mixer/mixer_run.py --new lpt43.json
+```
+
+**8. Check a run against the released data**
+
+```bash
+python scripts/agtf30_mixer/mixer_verify.py "$AGTF30_WORK/agtf30_mixer/runs/lpt43" --release <folder with AGTF30_LPT.h5>
+```
+
+`MIXER_VERIFY_PASS` means every signal group, the `cycles` rows and the `units` row of each engine in the run equal
+the released file bit for bit. LPT engine 43 (unit 44 of the v1.0 file, 82 flights, 51 flight hours) is the shortest
+v1.0 engine; its run takes about 25 min.
+
+**Tested.** On 2026-11-14 (Windows 11, MATLAB R2023b, Visual Studio 2022 Build Tools, Python 3.14) from a new folder:
+a copy of this repository, new AGTF30 (a1521a76) and T-MATS (v1.3.3) clones, a new Python environment from
+`requirements.txt`, then the commands of steps 2-8 (run by a script, same arguments; the page in step 7 with
+`--no-browser`, checked by one request). Build times: MEX 98 s, `a1_reference` 400 s, the three
+`cb_build` calls 301 s, compile 12 s, validation 48 s (`VALIDATION_PASS`), flight library 69 s; the rebuilt
+library was byte-identical to the one used for the dataset (100 of 100 files). LPT engine 43 took 23 min at Idle
+priority and gave `MIXER_VERIFY_PASS` against v1.0. Disk: library 4.3 GB, build folders 0.8 GB, AGTF30 and
+T-MATS clones 0.2 GB, run 0.1 GB (Python environment with torch 1 GB).
+
+**Other systems.** Bit-identity needs the compiler the release was flown with: v1.0 (FAN, HPC, HPT, LPT, MIX) used
+Windows MSVC builds, v1.1 (HPTLPT, LPCHPC, ALL) Linux gcc builds (C code generated on Windows, compiled with gcc
+`-O2 -ffp-contract=off`, see `scripts/agtf30_gen/slurm/make_v11_pkg.sh`). With the other compiler the
+floating-point signals can differ in the last bits, and `mixer_verify.py` then reports `MIXER_VERIFY_FAIL`. In the
+clean test, the Windows build run against v1.1 (LPCHPC engine 36, 79 flights, 38 min) gave the same flights, life
+and labels (`A`, `Y` identical) and a largest signal difference of 9.4e-10. On Linux,
+`build_all.py` uses gcc by default; generating the C code with MATLAB on Linux and anything on macOS were not
+tested.
 
 ## Notes
 

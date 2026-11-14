@@ -1,0 +1,714 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AGTF30 Scenario Mixer</title>
+<style>
+:root {
+  color-scheme: light;
+  --plane: #f4f5f7; --surface: #ffffff; --surface-2: #f8f9fb; --sunken: #eef0f4;
+  --ink: #0f1419; --ink-2: #4a5160; --muted: #868c98; --hair: rgba(15, 20, 25, .09); --hair-2: rgba(15, 20, 25, .16);
+  --accent: #4338ca; --accent-2: #5b50e0; --accent-soft: #eceafd; --accent-ink: #ffffff;
+  --good: #0ca30c; --good-text: #006300; --good-soft: #e6f5e6;
+  --warn: #fab219; --warn-soft: #fff4dc; --serious: #ec835a; --crit: #d03b3b; --crit-soft: #fbe9e9;
+  --changed: #fff7e0; --changed-line: #e5a400;
+  --grid: #e7e8ec; --axis: #c3c2b7;
+  --s1: #2a78d6; --s2: #eb6834; --s3: #1baf7a; --s4: #eda100; --s5: #e87ba4; --s6: #008300; --s7: #6250d6; --s8: #e34948;
+  --shadow: 0 1px 2px rgba(15, 20, 25, .04), 0 4px 16px rgba(15, 20, 25, .05);
+  --radius: 14px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:where(:not([data-theme="light"])) {
+    color-scheme: dark;
+    --plane: #0d0e10; --surface: #17181b; --surface-2: #1c1e22; --sunken: #23262b;
+    --ink: #eef0f3; --ink-2: #b8bdc7; --muted: #8a909b; --hair: rgba(255, 255, 255, .08); --hair-2: rgba(255, 255, 255, .15);
+    --accent: #8b85f5; --accent-2: #a39ef8; --accent-soft: #25233f; --accent-ink: #0d0e10;
+    --good-text: #3fcf3f; --good-soft: #15291a; --warn-soft: #2f2610; --crit-soft: #321819;
+    --changed: #2c2412; --changed-line: #c99a12;
+    --grid: #2a2c30; --axis: #3a3c40;
+    --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500; --s5: #d55181; --s6: #008300; --s7: #9085e9; --s8: #e66767;
+    --shadow: 0 1px 2px rgba(0, 0, 0, .3), 0 6px 20px rgba(0, 0, 0, .25);
+  }
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body { background: var(--plane); color: var(--ink); font: 14px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; -webkit-font-smoothing: antialiased; }
+button, input, select { font: inherit; color: inherit; }
+.num { font-variant-numeric: tabular-nums; }
+.mono { font-family: ui-monospace, "Cascadia Code", Consolas, monospace; font-size: 12px; }
+.muted { color: var(--muted); }
+[hidden] { display: none !important; }
+
+/* top bar */
+.top { position: sticky; top: 0; z-index: 20; background: color-mix(in srgb, var(--surface) 88%, transparent); backdrop-filter: blur(10px); border-bottom: 1px solid var(--hair); }
+.top-in { max-width: 1440px; margin: 0 auto; padding: 12px 24px; display: flex; align-items: center; gap: 14px; }
+.logo { width: 34px; height: 34px; border-radius: 10px; background: linear-gradient(135deg, var(--accent), var(--accent-2)); display: grid; place-items: center; flex: none; }
+.logo svg { width: 22px; height: 22px; }
+.top h1 { font-size: 16px; margin: 0; font-weight: 650; letter-spacing: -.01em; }
+.top .tag { font-size: 12px; color: var(--muted); }
+.top .spacer { flex: 1; }
+.steps { display: flex; gap: 6px; align-items: center; font-size: 12px; color: var(--ink-2); }
+.steps b { display: inline-grid; place-items: center; width: 18px; height: 18px; border-radius: 50%; background: var(--accent-soft); color: var(--accent); font-size: 11px; margin-right: 4px; }
+.steps .arrow { color: var(--muted); }
+@media (max-width: 1100px) { .steps { display: none; } }
+
+/* layout */
+.wrap { max-width: 1440px; margin: 0 auto; padding: 20px 24px 40px; display: grid; grid-template-columns: minmax(380px, 520px) minmax(0, 1fr); gap: 20px; align-items: start; }
+@media (max-width: 980px) { .wrap { grid-template-columns: minmax(0, 1fr); padding: 16px; } }
+.col { min-width: 0; display: flex; flex-direction: column; gap: 14px; }
+.colhead { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 0 4px; min-height: 36px; }
+.colhead h2 { font-size: 12px; text-transform: uppercase; letter-spacing: .07em; color: var(--muted); margin: 0; font-weight: 650; }
+.card { background: var(--surface); border: 1px solid var(--hair); border-radius: var(--radius); box-shadow: var(--shadow); }
+.card-h { display: flex; align-items: center; gap: 10px; padding: 16px 18px 4px; }
+.card-h .n { width: 24px; height: 24px; border-radius: 8px; background: var(--accent-soft); color: var(--accent); display: grid; place-items: center; font-weight: 700; font-size: 12px; flex: none; }
+.card-h h3 { margin: 0; font-size: 15px; font-weight: 650; letter-spacing: -.01em; }
+.card-h .sub { margin-left: auto; font-size: 12px; color: var(--muted); text-align: right; }
+.card-b { padding: 10px 18px 18px; }
+.help { font-size: 12.5px; color: var(--ink-2); margin: 0 0 12px; }
+
+/* family tiles */
+.tiles { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+@media (max-width: 520px) { .tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.tile { position: relative; text-align: left; border: 1px solid var(--hair-2); background: var(--surface); border-radius: 11px; padding: 10px 10px 9px; cursor: pointer; transition: border-color .15s, box-shadow .15s, background .15s; min-width: 0; }
+.tile:hover { border-color: var(--accent-2); }
+.tile .code { display: flex; align-items: center; gap: 6px; font-weight: 700; font-size: 13px; letter-spacing: .01em; }
+.dot { width: 9px; height: 9px; border-radius: 50%; flex: none; display: inline-block; }
+.tile .desc { display: block; font-size: 11.5px; color: var(--ink-2); line-height: 1.3; margin-top: 3px; padding-right: 10px; }
+.tile .ver { position: absolute; top: 8px; right: 8px; font-size: 10px; color: var(--muted); font-weight: 600; }
+.tile[aria-pressed="true"] { border-color: var(--accent); background: var(--accent-soft); box-shadow: inset 0 0 0 1px var(--accent); }
+.tile[aria-pressed="true"]::after { content: ""; position: absolute; right: 7px; bottom: 7px; width: 15px; height: 15px; border-radius: 50%; background: var(--accent) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M4 8.5l2.5 2.5L12 5.5' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center/11px no-repeat; }
+
+/* fields */
+.field { margin-top: 14px; }
+.field > label, .field > .lbl { display: flex; align-items: baseline; gap: 8px; font-weight: 600; font-size: 13px; margin-bottom: 6px; }
+.field .hint { font-size: 12px; color: var(--muted); margin-top: 6px; }
+.input { width: 100%; height: 36px; padding: 0 11px; border: 1px solid var(--hair-2); border-radius: 9px; background: var(--surface-2); outline: none; transition: border-color .15s, box-shadow .15s; }
+.input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); background: var(--surface); }
+.input.bad { border-color: var(--crit); }
+.seg { display: inline-flex; background: var(--sunken); border-radius: 10px; padding: 3px; gap: 2px; flex-wrap: wrap; }
+.seg button { border: 0; background: transparent; padding: 5px 12px; border-radius: 8px; cursor: pointer; font-size: 13px; color: var(--ink-2); font-weight: 550; }
+.seg button:hover { color: var(--ink); }
+.seg button[aria-pressed="true"] { background: var(--surface); color: var(--ink); box-shadow: 0 1px 2px rgba(0, 0, 0, .12); }
+.row2 { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+
+/* mode cards */
+.modes { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.mode { text-align: left; border: 1px solid var(--hair-2); border-radius: 11px; padding: 11px 12px; background: var(--surface); cursor: pointer; }
+.mode:hover { border-color: var(--accent-2); }
+.mode b { display: flex; align-items: center; gap: 7px; font-size: 13.5px; }
+.mode span { display: block; font-size: 12px; color: var(--ink-2); margin-top: 3px; line-height: 1.35; }
+.mode[aria-pressed="true"] { border-color: var(--accent); background: var(--accent-soft); box-shadow: inset 0 0 0 1px var(--accent); }
+.mode svg { width: 15px; height: 15px; }
+
+/* knobs */
+.knob { padding: 10px 12px; border-radius: 11px; border: 1px solid transparent; margin-top: 8px; background: var(--surface-2); }
+.knob.changed { background: var(--changed); border-color: color-mix(in srgb, var(--changed-line) 45%, transparent); }
+.knob .kh { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.knob .kn { font-weight: 600; font-size: 13px; }
+.knob .kd { font-size: 12px; color: var(--muted); }
+.knob .kv { margin-left: auto; width: 104px; height: 30px; text-align: right; }
+.knob .ks { font-size: 12px; color: var(--ink-2); margin-top: 3px; }
+.reset { border: 0; background: none; color: var(--accent); cursor: pointer; font-size: 12px; padding: 0 2px; font-weight: 600; }
+input[type=range] { width: 100%; margin: 10px 0 2px; accent-color: var(--accent); height: 18px; }
+.lockview { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 6px; }
+.lockview div { background: var(--surface-2); border-radius: 9px; padding: 7px 10px; font-size: 12px; color: var(--ink-2); }
+.lockview b { display: block; color: var(--ink); font-size: 13px; }
+
+/* toggle */
+.switch { display: flex; align-items: center; gap: 10px; cursor: pointer; user-select: none; }
+.switch input { appearance: none; width: 38px; height: 22px; border-radius: 11px; background: var(--hair-2); position: relative; cursor: pointer; transition: background .15s; flex: none; margin: 0; }
+.switch input::after { content: ""; position: absolute; top: 3px; left: 3px; width: 16px; height: 16px; border-radius: 50%; background: white; box-shadow: 0 1px 2px rgba(0, 0, 0, .25); transition: left .15s; }
+.switch input:checked { background: var(--accent); }
+.switch input:checked::after { left: 19px; }
+.switch span { font-size: 13px; }
+
+/* disclosure */
+details.more { margin-top: 14px; border-top: 1px solid var(--hair); padding-top: 10px; }
+details.more > summary { cursor: pointer; font-size: 13px; color: var(--ink-2); font-weight: 600; list-style: none; display: flex; align-items: center; gap: 6px; }
+details.more > summary::-webkit-details-marker { display: none; }
+details.more > summary::before { content: "›"; display: inline-block; transition: transform .15s; font-size: 16px; line-height: 1; color: var(--muted); width: 8px; }
+details.more[open] > summary::before { transform: rotate(90deg); }
+.pills { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+.pill { font-size: 12px; padding: 3px 10px; border-radius: 99px; background: var(--sunken); color: var(--muted); }
+
+/* run bar */
+.runbar { position: sticky; bottom: 12px; z-index: 5; padding: 14px 16px; box-shadow: 0 -2px 24px color-mix(in srgb, var(--plane) 80%, transparent), var(--shadow); }
+@media (max-width: 980px) { .runbar { position: static; } }
+.runbar .sum { display: flex; gap: 22px; flex-wrap: wrap; align-items: flex-end; }
+.stat .v { font-size: 20px; font-weight: 700; letter-spacing: -.02em; line-height: 1.1; }
+.stat .l { font-size: 11.5px; color: var(--muted); }
+.badge { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; font-weight: 600; padding: 3px 9px; border-radius: 99px; white-space: nowrap; }
+.badge.ok { background: var(--good-soft); color: var(--good-text); }
+.badge.custom { background: var(--changed); color: color-mix(in srgb, var(--changed-line) 60%, var(--ink)); }
+.badge svg { width: 13px; height: 13px; }
+.changes { font-size: 12px; color: var(--ink-2); margin-top: 8px; line-height: 1.8; }
+.changes code { background: var(--sunken); padding: 1px 6px; border-radius: 5px; font-size: 11.5px; white-space: nowrap; }
+.errs { margin-top: 10px; padding: 9px 12px; border-radius: 9px; background: var(--crit-soft); font-size: 12.5px; }
+.errs b { color: var(--crit); }
+.btn { height: 36px; padding: 0 14px; border-radius: 9px; border: 1px solid var(--hair-2); background: var(--surface); cursor: pointer; font-weight: 600; font-size: 13px; display: inline-flex; align-items: center; gap: 7px; white-space: nowrap; }
+.btn:hover { background: var(--surface-2); }
+.btn svg { width: 15px; height: 15px; }
+.btn.primary { background: var(--accent); color: var(--accent-ink); border-color: transparent; box-shadow: 0 2px 8px color-mix(in srgb, var(--accent) 35%, transparent); }
+.btn.primary:hover { background: var(--accent-2); }
+.btn.big { height: 44px; font-size: 15px; padding: 0 24px; border-radius: 11px; }
+.btn.ghost { border-color: transparent; background: transparent; color: var(--ink-2); }
+.btn.ghost:hover { background: var(--sunken); }
+.btn:disabled { opacity: .45; cursor: not-allowed; box-shadow: none; }
+.runbar .actions { display: flex; gap: 8px; align-items: center; margin-top: 12px; }
+.runbar .actions .grow { flex: 1; }
+
+/* runs list */
+.runlist { display: flex; flex-direction: column; gap: 4px; padding: 8px; }
+.runitem { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 4px 12px; align-items: center; text-align: left; padding: 10px 12px; border-radius: 10px; border: 1px solid transparent; background: transparent; cursor: pointer; }
+.runitem:hover { background: var(--surface-2); }
+.runitem[aria-current="true"] { background: var(--accent-soft); border-color: color-mix(in srgb, var(--accent) 35%, transparent); }
+.runitem .dots { display: flex; gap: 3px; }
+.runitem .nm { font-weight: 600; font-size: 13.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.runitem .meta { grid-column: 2 / 4; font-size: 12px; color: var(--muted); display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.bar { height: 5px; background: var(--sunken); border-radius: 3px; overflow: hidden; display: inline-block; }
+.bar > i { display: block; height: 100%; background: var(--accent); border-radius: 3px; transition: width .4s; }
+.empty { padding: 34px 20px; text-align: center; color: var(--muted); }
+.empty svg { width: 44px; height: 44px; opacity: .5; }
+
+/* status: dot + label, never colour alone */
+.st { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; white-space: nowrap; color: var(--ink-2); }
+.st i { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); flex: none; }
+.st.running i { background: var(--accent); animation: pulse 1.6s infinite; }
+.st.done i, .st.finished i { background: var(--good); }
+.st.censored i, .st.queued i, .st.exporting i, .st.simulated i { background: var(--warn); }
+.st.stopped i, .st.env_error i { background: var(--serious); }
+.st.dropped i { background: var(--crit); }
+@keyframes pulse { 0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 55%, transparent); } 70% { box-shadow: 0 0 0 7px transparent; } 100% { box-shadow: 0 0 0 0 transparent; } }
+
+/* detail */
+.dh { display: flex; align-items: flex-start; gap: 12px; padding: 18px 18px 6px; flex-wrap: wrap; }
+.dh h3 { margin: 0; font-size: 18px; font-weight: 700; letter-spacing: -.015em; word-break: break-all; }
+.dh .path { color: var(--muted); margin-top: 3px; word-break: break-all; }
+.dh .acts { margin-left: auto; display: flex; gap: 6px; flex-wrap: wrap; }
+.kpis { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; padding: 10px 18px 4px; }
+@media (max-width: 640px) { .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.kpi { background: var(--surface-2); border-radius: 11px; padding: 11px 13px; }
+.kpi .v { font-size: 22px; font-weight: 700; letter-spacing: -.02em; line-height: 1.15; }
+.kpi .l { font-size: 12px; color: var(--muted); }
+.sect { padding: 16px 18px 4px; }
+.sect h4 { margin: 0 0 4px; font-size: 13.5px; font-weight: 650; display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+.sect h4 .muted { font-weight: 400; font-size: 12px; }
+
+/* chart */
+.chart { position: relative; margin-top: 6px; }
+.chart svg { display: block; width: 100%; height: 300px; }
+.chart text { fill: var(--muted); font-size: 11px; font-variant-numeric: tabular-nums; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 12px; color: var(--ink-2); margin-top: 6px; }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.legend i { width: 14px; height: 3px; border-radius: 2px; }
+.tip { position: absolute; pointer-events: none; background: var(--surface); border: 1px solid var(--hair-2); box-shadow: var(--shadow); border-radius: 9px; padding: 8px 10px; font-size: 12px; min-width: 160px; z-index: 3; }
+.tip .t { font-weight: 650; margin-bottom: 4px; }
+.tip .r { display: flex; align-items: center; gap: 7px; color: var(--ink-2); }
+.tip .r i { width: 10px; height: 3px; border-radius: 2px; flex: none; }
+.tip .r b { margin-left: auto; color: var(--ink); font-variant-numeric: tabular-nums; padding-left: 10px; }
+
+/* table */
+.tbl { overflow-x: auto; margin-top: 4px; }
+table { border-collapse: collapse; width: 100%; font-size: 13px; }
+th { text-align: left; font-weight: 500; color: var(--muted); font-size: 12px; padding: 8px 10px; border-bottom: 1px solid var(--hair); white-space: nowrap; }
+td { padding: 8px 10px; border-bottom: 1px solid var(--hair); white-space: nowrap; font-variant-numeric: tabular-nums; }
+tr:last-child td { border-bottom: 0; }
+td .fam { display: inline-flex; align-items: center; gap: 7px; font-weight: 600; }
+td .bar { width: 90px; vertical-align: middle; }
+
+/* outputs */
+.file { display: flex; align-items: center; gap: 10px; padding: 9px 12px; border: 1px solid var(--hair); border-radius: 10px; margin-top: 6px; background: var(--surface-2); }
+.file > svg { width: 18px; height: 18px; color: var(--accent); flex: none; }
+.file .fp { min-width: 0; flex: 1; }
+.file .fn { font-weight: 600; font-size: 13px; }
+.file .fd { color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.overlay { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 12px; padding: 12px; border-radius: 10px; border: 1px dashed var(--hair-2); }
+.overlay .input { width: 80px; height: 32px; }
+pre.log { margin: 8px 0 0; background: var(--sunken); border-radius: 9px; padding: 10px 12px; font-size: 11.5px; max-height: 220px; overflow: auto; line-height: 1.55; white-space: pre-wrap; word-break: break-all; }
+
+/* toast */
+.toasts { position: fixed; right: 18px; bottom: 18px; display: flex; flex-direction: column; gap: 8px; z-index: 50; max-width: min(420px, calc(100vw - 36px)); }
+.toast { background: var(--ink); color: var(--plane); padding: 11px 14px; border-radius: 10px; font-size: 13px; box-shadow: var(--shadow); animation: up .2s ease-out; }
+.toast.err { background: var(--crit); color: #fff; }
+@keyframes up { from { transform: translateY(8px); opacity: 0; } }
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="top-in">
+    <div class="logo" aria-hidden="true">
+      <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="2.2" fill="#fff"/><path d="M12 9.8V3.6M14 13l5.4 3.1M10 13l-5.4 3.1"/></svg>
+    </div>
+    <div>
+      <h1>AGTF30 Scenario Mixer</h1>
+      <div class="tag">Fly geared-turbofan engines to failure and get N-CMAPSS-style data</div>
+    </div>
+    <div class="spacer"></div>
+    <div class="steps"><span><b>1</b>Pick engines</span><span class="arrow">→</span><span><b>2</b>Keep the recipe or tweak it</span><span class="arrow">→</span><span><b>3</b>Run, then open the h5 files</span></div>
+  </div>
+</header>
+
+<div class="wrap">
+  <!-- ======================= left: new run ======================= -->
+  <div class="col">
+    <div class="colhead"><h2>New run</h2>
+      <div><button class="btn ghost" id="btn-load" title="Open a scenario.json file"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M2 5.5V12a1.5 1.5 0 0 0 1.5 1.5h9A1.5 1.5 0 0 0 14 12V7a1.5 1.5 0 0 0-1.5-1.5H8L6.5 3.5h-3A1.5 1.5 0 0 0 2 5"/></svg>Open</button><input type="file" id="file" accept=".json" hidden>
+      <button class="btn ghost" id="btn-save" title="Download this scenario as JSON"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M8 2.5v8m0 0L5 7.5m3 3 3-3M3 13.5h10"/></svg>Save</button></div>
+    </div>
+
+    <section class="card">
+      <div class="card-h"><span class="n">1</span><h3>Which engines?</h3><span class="sub" id="fam-count"></span></div>
+      <div class="card-b">
+        <p class="help">Pick one or more fault types. Each one becomes its own h5 file, like the released subsets.</p>
+        <div class="tiles" id="tiles"></div>
+        <div class="field">
+          <div class="lbl">How many engines of each type</div>
+          <div class="seg" id="quick">
+            <button data-q="0">1 engine</button><button data-q="0-4">5</button><button data-q="0-9">10</button><button data-q="0-59">All 60</button><button data-q="custom">Pick numbers…</button>
+          </div>
+          <div class="row2" id="idx-row" style="margin-top:8px">
+            <input class="input mono" id="idx" placeholder="e.g. 0-4, 43" spellcheck="false" aria-label="Engine numbers">
+          </div>
+          <div class="hint">Engine numbers 0-59 are the released engines (unit = number + 1). 60 and above are new engines with the same recipe.</div>
+        </div>
+        <details class="more">
+          <summary>Flight limit and dropped engines</summary>
+          <div id="knobs-engine"></div>
+          <div class="field"><label class="switch"><input type="checkbox" id="repl"><span>Replace an engine the solver can't fly, as the dataset does</span></label></div>
+        </details>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="card-h"><span class="n">2</span><h3>Wear physics</h3><span class="sub">needs simulation</span></div>
+      <div class="card-b">
+        <div class="modes">
+          <button class="mode" id="mode-def" aria-pressed="true"><b><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="3" y="7" width="10" height="7" rx="1.5"/><path d="M5.5 7V5a2.5 2.5 0 0 1 5 0v2"/></svg>Dataset recipe</b><span>Gives exactly the released engines. Best for checking or extending the dataset.</span></button>
+          <button class="mode" id="mode-cus" aria-pressed="false"><b><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M3 4h6m3 0h1M3 12h1m3 0h6M10 2.5v3M5.5 10.5v3"/></svg>Custom</b><span>Change wear speed, fault growth or the seed for your own experiment.</span></button>
+        </div>
+        <div id="phys-locked" class="field"><div class="lockview" id="lockview"></div></div>
+        <div id="phys-custom" hidden>
+          <div id="knobs-phys"></div>
+          <p class="help" style="margin:10px 0 0">Changing K, lam or s_init keeps each engine's random draws (initial wear, fault onset, flights, noise), so you get the <i>same engine</i> with different physics. Change the seed for new random engines.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="card-h"><span class="n">3</span><h3>Sensor noise</h3><span class="sub">instant · can change after the run</span></div>
+      <div class="card-b">
+        <label class="switch"><input type="checkbox" id="noise"><span>Add measurement noise to the 14 sensors (X_s)</span></label>
+        <div id="knobs-noise"></div>
+        <p class="help" style="margin:8px 0 0">A clean copy (X_s_clean) is always saved as well.</p>
+        <details class="more">
+          <summary>Coming later (Paper 2)</summary>
+          <div class="pills" id="paper2"></div>
+        </details>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="card-h"><span class="n">4</span><h3>Run settings</h3></div>
+      <div class="card-b">
+        <div class="field" style="margin-top:4px"><label for="name">Run name</label>
+          <input class="input mono" id="name" spellcheck="false" placeholder="auto">
+          <div class="hint">Saved to <span class="mono" id="rootdir"></span>\&lt;name&gt;</div></div>
+        <div class="field"><div class="lbl">Engines at the same time</div>
+          <div class="seg" id="workers"><button data-w="1">1</button><button data-w="2">2</button><button data-w="3">3</button><button data-w="4">4</button></div>
+          <div class="hint">1 keeps the computer responsive. Runs use spare CPU first.</div></div>
+        <details class="more">
+          <summary>CPU priority and compression</summary>
+          <div class="field"><label for="prio">CPU priority</label><select class="input" id="prio"><option value="idle">Idle: only spare CPU (recommended)</option><option value="below_normal">Below normal</option><option value="normal">Normal</option></select></div>
+          <div class="field"><label for="filt">h5 compression</label><select class="input" id="filt"><option value="gzip1">gzip 1 (as released)</option><option value="gzip4">gzip 4 (smaller, slower)</option><option value="lzf">lzf (fast)</option><option value="none">none</option></select></div>
+        </details>
+      </div>
+    </section>
+
+    <section class="card runbar" id="runbar">
+      <div class="sum">
+        <div class="stat"><div class="v num" id="s-eng">1</div><div class="l">engines</div></div>
+        <div class="stat"><div class="v num" id="s-time">~1 h</div><div class="l">estimated time</div></div>
+        <div class="stat"><div class="v num" id="s-disk">0.4 GB</div><div class="l">disk space</div></div>
+        <div style="margin-left:auto" id="s-badge"></div>
+      </div>
+      <div class="changes" id="s-changes"></div>
+      <div id="s-errs"></div>
+      <div class="actions">
+        <button class="btn ghost" id="btn-defaults" title="Every setting back to the released recipe">Reset all</button>
+        <span class="grow"></span>
+        <button class="btn primary big" id="btn-run"><svg viewBox="0 0 16 16" fill="currentColor"><path d="M4.5 2.8v10.4a.6.6 0 0 0 .9.5l8.3-5.2a.6.6 0 0 0 0-1L5.4 2.3a.6.6 0 0 0-.9.5z"/></svg>Run</button>
+      </div>
+    </section>
+  </div>
+
+  <!-- ======================= right: runs ======================= -->
+  <div class="col">
+    <div class="colhead"><h2>Runs</h2><span class="muted" style="font-size:12px">runs keep going if you close this page</span></div>
+    <section class="card"><div class="runlist" id="runs"></div></section>
+
+    <section class="card" id="detail" hidden>
+      <div class="dh">
+        <div style="min-width:0">
+          <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><h3 id="d-name"></h3><span id="d-status"></span><span id="d-badge"></span></div>
+          <div class="path mono" id="d-dir"></div>
+        </div>
+        <div class="acts">
+          <button class="btn" id="b-stop"><svg viewBox="0 0 16 16" fill="currentColor"><rect x="4" y="4" width="8" height="8" rx="1.5"/></svg>Pause</button>
+          <button class="btn" id="b-resume"><svg viewBox="0 0 16 16" fill="currentColor"><path d="M4.5 2.8v10.4a.6.6 0 0 0 .9.5l8.3-5.2a.6.6 0 0 0 0-1L5.4 2.3a.6.6 0 0 0-.9.5z"/></svg>Resume</button>
+          <button class="btn" id="b-edit" title="Load this run's settings into the form">Reuse settings</button>
+        </div>
+      </div>
+      <div class="kpis">
+        <div class="kpi"><div class="v num" id="k-eng">–</div><div class="l">engines finished</div></div>
+        <div class="kpi"><div class="v num" id="k-fl">–</div><div class="l">flights flown</div></div>
+        <div class="kpi"><div class="v num" id="k-hr">–</div><div class="l">flight hours</div></div>
+        <div class="kpi"><div class="v num" id="k-time">–</div><div class="l" id="k-time-l">elapsed</div></div>
+      </div>
+      <div class="changes" id="d-changes" style="padding:2px 18px 0"></div>
+
+      <div class="sect">
+        <h4>Health index per flight <span class="muted">1 = new engine · 0 = end of life · hover for values</span></h4>
+        <div class="chart" id="chart"><svg id="plot" role="img" aria-label="Health index per flight for each engine"></svg><div class="tip" id="tip" hidden></div></div>
+        <div class="legend" id="legend"></div>
+      </div>
+
+      <div class="sect">
+        <h4>Engines</h4>
+        <div class="tbl"><table><thead><tr><th>Type</th><th>Unit</th><th>Flight length</th><th>Flights</th><th>Fault onset</th><th>Health now</th><th>Wear so far</th><th>Status</th></tr></thead><tbody id="etab"></tbody></table></div>
+      </div>
+
+      <div class="sect">
+        <h4>Output files</h4>
+        <div id="outs"></div>
+        <div class="overlay">
+          <span style="font-size:13px;font-weight:600">Need different noise?</span>
+          <label class="switch"><input type="checkbox" id="x-noise" checked><span>noise</span></label>
+          <input class="input num" type="number" id="x-snr" value="65" min="10" max="150" step="1" aria-label="SNR in dB"><span class="muted" style="font-size:12px">dB</span>
+          <button class="btn" id="b-export">Write a copy</button>
+          <span class="muted" style="font-size:12px;flex-basis:100%">Writes the same engines with the new noise into exports/, in seconds, without simulating again.</span>
+        </div>
+      </div>
+
+      <div class="sect" style="padding-bottom:18px">
+        <details class="more" style="border:0;margin:0;padding:0"><summary>Log</summary><pre class="log mono" id="d-log"></pre></details>
+      </div>
+    </section>
+  </div>
+</div>
+<div class="toasts" id="toasts"></div>
+
+<script>
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;"}[c]));
+const clone = o => JSON.parse(JSON.stringify(o));
+let META, SC, SELECTED = null, nameAuto = true, mode = "def", timer = null, LAST = null;
+
+// Family identity: fixed order = fixed colour slot (never cycled). Text never wears these colours.
+const FAM = {
+  HPT: {slot: 1, long: "High-pressure turbine"}, HPC: {slot: 2, long: "High-pressure compressor"},
+  LPT: {slot: 3, long: "Low-pressure turbine"}, FAN: {slot: 4, long: "Fan"},
+  MIX: {slot: 5, long: "HPC + HPT together"}, HPTLPT: {slot: 6, long: "HPT + LPT together"},
+  LPCHPC: {slot: 7, long: "LPC + HPC together"}, ALL: {slot: 8, long: "All five modules"}};
+const famColor = f => `var(--s${FAM[f]?.slot || 1})`;
+const CLS = {1: "short", 2: "medium", 3: "long"};
+const STATUS = {running: "Running", done: "Finished", finished: "Finished", censored: "At flight limit", stopped: "Paused",
+  env_error: "Paused (PC error)", dropped: "Dropped", queued: "Waiting", "not started": "Not started", new: "New", exporting: "Writing files", simulated: "Writing files"};
+const st = s => `<span class="st ${esc(String(s).replace(" ", "_"))}"><i></i>${esc(STATUS[s] || s)}</span>`;
+
+async function api(path, body) {
+  const r = await fetch(path, body === undefined ? {} : {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify(body)});
+  return r.json();
+}
+function toast(msg, err) {
+  const t = document.createElement("div"); t.className = "toast" + (err ? " err" : ""); t.textContent = msg;
+  $("toasts").appendChild(t); setTimeout(() => t.remove(), err ? 7000 : 3500);
+}
+function fmtIdx(v) {
+  const s = [...v].sort((a, b) => a - b), out = [];
+  for (let i = 0; i < s.length;) { let j = i; while (j + 1 < s.length && s[j + 1] === s[j] + 1) j++; out.push(i === j ? `${s[i]}` : `${s[i]}-${s[j]}`); i = j + 1; }
+  return out.join(", ");
+}
+function parseIdx(t) {
+  const out = new Set();
+  for (const part of t.split(/[,\s]+/).filter(Boolean)) {
+    const m = part.match(/^(\d+)(?:-(\d+))?$/); if (!m) throw new Error(`"${part}" is not a number or range`);
+    const a = +m[1], b = m[2] === undefined ? a : +m[2]; if (b < a || b - a > 10000) throw new Error(`bad range "${part}"`);
+    for (let i = a; i <= b; i++) out.add(i);
+  }
+  return [...out].sort((a, b) => a - b);
+}
+const dur = h => h < 1 ? `~${Math.max(5, Math.round(h * 60 / 5) * 5)} min` : h < 48 ? `~${h < 10 ? h.toFixed(1).replace(/\.0$/, "") : Math.round(h)} h` : `~${(h / 24).toFixed(1)} days`;
+const ago = t => { const s = (Date.now() - t) / 1000; return s < 90 ? "just now" : s < 5400 ? `${Math.round(s / 60)} min ago` : s < 129600 ? `${Math.round(s / 3600)} h ago` : `${Math.round(s / 86400)} d ago`; };
+const hms = s => s < 3600 ? `${Math.max(1, Math.round(s / 60))} min` : `${Math.floor(s / 3600)} h ${Math.round(s % 3600 / 60)} m`;
+
+/* ---------- knob: label, default, reset, number box and slider ---------- */
+function knob(host, o) {
+  const d = document.createElement("div"); d.className = "knob";
+  d.innerHTML = `<div class="kh"><span class="kn">${o.label}</span><span class="kd">default ${o.def}</span><button class="reset" hidden>reset</button><input class="input num kv" type="number" min="${o.min}" max="${o.max}" step="${o.step}" aria-label="${o.label}"></div>
+    ${o.help ? `<div class="ks">${o.help}</div>` : ""}${o.range === false ? "" : `<input type="range" min="${o.rmin ?? o.min}" max="${o.rmax ?? o.max}" step="${o.rstep ?? o.step}" aria-label="${o.label} slider">`}`;
+  host.appendChild(d);
+  const num = d.querySelector(".kv"), rng = d.querySelector("input[type=range]"), rs = d.querySelector(".reset");
+  const mark = v => { const ch = v !== o.def; d.classList.toggle("changed", ch); rs.hidden = !ch; };
+  num.value = o.get(); if (rng) rng.value = o.get(); mark(o.get());
+  num.addEventListener("input", () => { const v = o.int ? parseInt(num.value) : parseFloat(num.value); if (isNaN(v)) return; o.set(v); if (rng) rng.value = v; mark(v); onChange(false); });
+  rng?.addEventListener("input", () => { const v = o.int ? parseInt(rng.value) : parseFloat(rng.value); o.set(v); num.value = v; mark(v); onChange(false); });
+  rs.addEventListener("click", () => { o.set(o.def); num.value = o.def; if (rng) rng.value = o.def; mark(o.def); onChange(false); });
+  d.disable = on => { num.disabled = on; if (rng) rng.disabled = on; d.style.opacity = on ? .5 : 1; };
+  return d;
+}
+
+/* ---------- form ---------- */
+function buildTiles() {
+  const box = $("tiles"); box.innerHTML = "";
+  for (const f of META.families) {
+    const b = document.createElement("button"); b.className = "tile"; b.dataset.f = f.name;
+    b.innerHTML = `<span class="ver">${f.id <= 5 ? "v1.0" : "v1.1"}</span><span class="code"><span class="dot" style="background:${famColor(f.name)}"></span>${f.name}</span><span class="desc">${esc(FAM[f.name]?.long || f.note)}</span>`;
+    b.title = `${f.name} (subset id ${f.id}): ${f.note}`;
+    b.onclick = () => {
+      const s = new Set(SC.physics.families); s.has(f.name) ? s.delete(f.name) : s.add(f.name);
+      SC.physics.families = META.families.map(x => x.name).filter(n => s.has(n)); onChange(true);
+    };
+    box.appendChild(b);
+  }
+}
+function buildKnobs() {
+  const d = META.defaults, p = () => SC.physics;
+  $("knobs-engine").innerHTML = "";
+  knob($("knobs-engine"), {label: "Flight limit", def: d.physics.max_flights, min: 1, max: META.max_flights_cap, step: 1, int: true,
+    help: "An engine still healthy after this many flights is kept, with RUL = −1. Raise it later and resume to continue.", get: () => p().max_flights, set: v => p().max_flights = v});
+  const kp = $("knobs-phys"); kp.innerHTML = "";
+  SC.physics.families.forEach((f, i) =>
+    knob(kp, {label: `Fault growth K · ${f}`, def: d.physics.K[f], min: 0.05, max: 20, step: 0.05, rmin: 0.2, rmax: 6, help: i === 0 ? "How fast the fault grows once it has started. Higher means a shorter life." : "", get: () => p().K[f], set: v => p().K[f] = v}));
+  knob(kp, {label: "Background wear (lam)", def: d.physics.lam, min: 0, max: 2, step: 0.01, rmax: 0.6, help: "Normal wear of every module, flight by flight.", get: () => p().lam, set: v => p().lam = v});
+  knob(kp, {label: "Initial wear (s_init)", def: d.physics.s_init, min: 0, max: 2, step: 0.01, rmax: 1, help: "How worn each engine is when it is new (as built).", get: () => p().s_init, set: v => p().s_init = v});
+  const sk = knob(kp, {label: "Random seed", def: d.physics.seed_base, min: 0, max: 9e15, step: 1, int: true, range: false, help: "Same seed, same random engines. A new seed draws a new fleet.", get: () => p().seed_base, set: v => p().seed_base = v});
+  const dice = document.createElement("button"); dice.className = "reset"; dice.textContent = "new seed";
+  dice.onclick = () => { p().seed_base = Math.floor(Math.random() * 1e9); onChange(true); };
+  sk.querySelector(".kh").insertBefore(dice, sk.querySelector(".kv"));
+  $("knobs-noise").innerHTML = "";
+  const nk = knob($("knobs-noise"), {label: "Signal-to-noise ratio (dB)", def: d.overlay.snr_db, min: 10, max: 150, step: 1, rmin: 30, rmax: 100, help: "Higher is cleaner. The dataset uses 65 dB, as N-CMAPSS describes.", get: () => SC.overlay.snr_db, set: v => SC.overlay.snr_db = v});
+  nk.disable(!SC.overlay.noise);
+}
+function physChanged() {
+  const p = SC.physics, d = META.defaults.physics;
+  return p.seed_base !== d.seed_base || p.lam !== d.lam || p.s_init !== d.s_init || p.families.some(f => p.K[f] !== d.K[f]);
+}
+let pickCustom = false;
+function renderForm() {
+  const p = SC.physics;
+  document.querySelectorAll(".tile").forEach(t => t.setAttribute("aria-pressed", p.families.includes(t.dataset.f)));
+  $("fam-count").textContent = p.families.length ? `${p.families.length} selected` : "pick at least one";
+  const idxText = fmtIdx(p.engine_indices);
+  const match = pickCustom ? null : [...document.querySelectorAll("#quick button")].find(b => b.dataset.q === idxText);
+  document.querySelectorAll("#quick button").forEach(b => b.setAttribute("aria-pressed", match ? b === match : b.dataset.q === "custom"));
+  $("idx-row").hidden = !!match;
+  if (document.activeElement !== $("idx")) $("idx").value = idxText;
+  $("repl").checked = p.replace_dropped; $("noise").checked = SC.overlay.noise;
+  document.querySelectorAll("#workers button").forEach(b => b.setAttribute("aria-pressed", +b.dataset.w === SC.run.workers));
+  $("prio").value = SC.run.priority; $("filt").value = SC.output.h5_filter;
+  $("mode-def").setAttribute("aria-pressed", mode === "def"); $("mode-cus").setAttribute("aria-pressed", mode === "cus");
+  $("phys-locked").hidden = mode !== "def"; $("phys-custom").hidden = mode !== "cus";
+  const d = META.defaults.physics;
+  $("lockview").innerHTML = p.families.map(f => `<div>Fault growth K · ${f}<b class="num">${d.K[f]}</b></div>`).join("") +
+    `<div>Background wear<b class="num">${d.lam}</b></div><div>Initial wear<b class="num">${d.s_init}</b></div><div>Random seed<b class="num">${d.seed_base}</b></div>`;
+  buildKnobs();
+  if (document.activeElement !== $("name")) $("name").value = SC.name;
+}
+function autoName() {
+  const p = SC.physics;
+  const ov = SC.overlay.noise ? (SC.overlay.snr_db === 65 ? "" : `_snr${SC.overlay.snr_db}`) : "_nonoise";
+  const idx = p.engine_indices.length === 1 ? `e${p.engine_indices[0]}` : `e${fmtIdx(p.engine_indices).replace(/, /g, "_")}`;
+  return `${p.families.join("-") || "none"}_${idx}_${physChanged() ? "custom" : "recipe"}${ov}`.slice(0, 80);
+}
+
+let seq = 0;
+async function onChange(rebuild) {
+  if (nameAuto) SC.name = autoName();
+  if (rebuild) renderForm(); else if (document.activeElement !== $("name")) $("name").value = SC.name;
+  const p = SC.physics, n = p.families.length * p.engine_indices.length;
+  const frac = Math.min(1, p.max_flights / 80), perH = 1.2 * frac;       // typical engine: ~180 flight h at ~150 flight h per hour
+  $("s-eng").textContent = n;
+  $("s-time").textContent = n ? dur(Math.ceil(n / SC.run.workers) * perH) : "–";
+  const gb = n * 0.4 * frac;
+  $("s-disk").textContent = n ? (gb < 1 ? `${Math.max(10, Math.round(gb * 1000 / 10) * 10)} MB` : `${gb < 10 ? gb.toFixed(1) : Math.round(gb)} GB`) : "–";
+  const my = ++seq, r = await api("/api/check", SC);
+  if (my !== seq) return;
+  const tick = `<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 8.5l3 3 6-7"/></svg>`;
+  $("s-badge").innerHTML = r.recipe_default ? `<span class="badge ok">${tick}Dataset recipe</span>` : `<span class="badge custom">Custom</span>`;
+  const data = r.changed.filter(c => c.kind === "physics" || c.kind === "overlay");
+  let h = r.recipe_default
+    ? (p.engine_indices.some(i => i < 60) ? "Engines 0-59 come out identical to the released dataset, bit for bit." : "New engines, made with the released recipe.")
+    : "Changed from the recipe: " + data.map(c => `<code>${esc(c.setting.replace(/^(physics|overlay)\./, ""))}  ${esc(JSON.stringify(c.default))} → ${esc(JSON.stringify(c.value))}</code>`).join(" ");
+  if (r.exists) h += `<div>A run called <b>${esc(SC.name)}</b> already exists. Run continues it and adds anything new.</div>`;
+  $("s-changes").innerHTML = h;
+  $("s-errs").innerHTML = r.errors.length ? `<div class="errs"><b>Before you can run:</b><br>${r.errors.map(esc).join("<br>")}</div>` : "";
+  $("btn-run").disabled = r.errors.length > 0;
+}
+
+function bind() {
+  document.querySelectorAll("#quick button").forEach(b => b.onclick = () => {
+    pickCustom = b.dataset.q === "custom";
+    if (!pickCustom) SC.physics.engine_indices = parseIdx(b.dataset.q);
+    onChange(true); if (pickCustom) $("idx").focus();
+  });
+  $("idx").addEventListener("input", e => {
+    try { SC.physics.engine_indices = parseIdx(e.target.value); $("idx").classList.remove("bad"); onChange(false); }
+    catch (err) { $("idx").classList.add("bad"); $("s-errs").innerHTML = `<div class="errs"><b>Engine numbers:</b> ${esc(err.message)}</div>`; $("btn-run").disabled = true; }
+  });
+  $("repl").onchange = e => { SC.physics.replace_dropped = e.target.checked; onChange(false); };
+  $("noise").onchange = e => { SC.overlay.noise = e.target.checked; onChange(true); };
+  document.querySelectorAll("#workers button").forEach(b => b.onclick = () => { SC.run.workers = +b.dataset.w; onChange(true); });
+  $("prio").onchange = e => { SC.run.priority = e.target.value; onChange(false); };
+  $("filt").onchange = e => { SC.output.h5_filter = e.target.value; onChange(false); };
+  $("name").addEventListener("input", e => { SC.name = e.target.value.trim(); nameAuto = !SC.name; if (nameAuto) SC.name = autoName(); onChange(false); });
+  $("mode-def").onclick = () => {
+    if (mode === "def") return;
+    if (physChanged() && !confirm("Go back to the dataset recipe? Your custom wear and seed settings will be reset.")) return;
+    const d = META.defaults.physics; Object.assign(SC.physics, {seed_base: d.seed_base, lam: d.lam, s_init: d.s_init, K: clone(d.K)});
+    mode = "def"; onChange(true);
+  };
+  $("mode-cus").onclick = () => { mode = "cus"; onChange(true); };
+  $("btn-defaults").onclick = () => { const keep = {families: SC.physics.families, engine_indices: SC.physics.engine_indices}; SC = clone(META.defaults); Object.assign(SC.physics, keep); mode = "def"; nameAuto = true; onChange(true); toast("All settings are back to the dataset recipe."); };
+  $("btn-load").onclick = () => $("file").click();
+  $("file").onchange = async e => {
+    const f = e.target.files[0]; if (!f) return;
+    try { loadScenario((await api("/api/check", JSON.parse(await f.text()))).scenario); toast(`Opened ${f.name}`); } catch (err) { toast("That file is not a scenario: " + err.message, true); }
+    e.target.value = "";
+  };
+  $("btn-save").onclick = () => {
+    const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([JSON.stringify(SC, null, 1)], {type: "application/json"}));
+    a.download = (SC.name || "scenario") + ".json"; a.click();
+  };
+  $("btn-run").onclick = async () => {
+    $("btn-run").disabled = true;
+    const r = await api("/api/run", SC);
+    if (!r.ok) { toast(r.errors.join(" · "), true); onChange(false); return; }
+    toast(`Started ${r.name}`); await loadRuns(); select(r.name); onChange(false);
+  };
+  $("b-stop").onclick = async () => { if (confirm(`Pause ${SELECTED}? Resume continues from the last finished flight.`)) { await api(`/api/runs/${encodeURIComponent(SELECTED)}/stop`, {}); toast("Paused"); refresh(); loadRuns(); } };
+  $("b-resume").onclick = async () => { const r = await api(`/api/runs/${encodeURIComponent(SELECTED)}/resume`, {}); r.ok ? toast("Resumed") : toast(r.errors.join(" · "), true); refresh(); loadRuns(); };
+  $("b-edit").onclick = () => { if (LAST) { loadScenario(clone(LAST.scenario)); nameAuto = false; window.scrollTo({top: 0, behavior: "smooth"}); toast("Settings loaded into the form"); } };
+  $("b-export").onclick = async () => {
+    const r = await api(`/api/runs/${encodeURIComponent(SELECTED)}/export`, {noise: $("x-noise").checked, snr_db: parseFloat($("x-snr").value)});
+    r.ok ? toast(`Writing exports/${r.tag}/ …`) : toast(r.errors.join(" · "), true); refresh();
+  };
+  $("x-noise").onchange = e => $("x-snr").disabled = !e.target.checked;
+  let rt; window.addEventListener("resize", () => { clearTimeout(rt); rt = setTimeout(() => LAST && plot(LAST.engines), 120); });
+}
+function loadScenario(sc) { SC = sc; nameAuto = !SC.name; mode = physChanged() ? "cus" : "def"; pickCustom = false; onChange(true); }
+
+/* ---------- runs ---------- */
+async function loadRuns() {
+  const runs = await api("/api/runs"), box = $("runs");
+  if (!runs.length) { box.innerHTML = `<div class="empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="2.2"/><path d="M12 9.8V3.6M14 13l5.4 3.1M10 13l-5.4 3.1"/></svg><div style="margin-top:8px;font-weight:600;color:var(--ink-2)">No runs yet</div><div style="font-size:12.5px">Pick engines on the left and press Run.</div></div>`; return runs; }
+  box.innerHTML = "";
+  for (const r of runs) {
+    const b = document.createElement("button"); b.className = "runitem"; b.dataset.name = r.name; b.setAttribute("aria-current", r.name === SELECTED);
+    const pct = r.engines ? Math.round(100 * r.done / r.engines) : 0;
+    b.innerHTML = `<span class="dots">${(r.families || []).map(f => `<span class="dot" style="background:${famColor(f)}" title="${f}"></span>`).join("")}</span>
+      <span class="nm">${esc(r.name)}</span>${st(r.status)}
+      <span class="meta"><span class="num">${r.done}/${r.engines} engines</span><span class="bar" style="width:80px"><i style="width:${pct}%"></i></span><span>${r.recipe_default ? "dataset recipe" : "custom"}</span><span>· ${ago(r.modified * 1000)}</span></span>`;
+    b.onclick = () => select(r.name); box.appendChild(b);
+  }
+  return runs;
+}
+function select(name) { SELECTED = name; $("detail").hidden = false; document.querySelectorAll(".runitem").forEach(x => x.setAttribute("aria-current", x.dataset.name === name)); refresh(); }
+
+async function refresh() {
+  if (!SELECTED) return;
+  const r = await api(`/api/runs/${encodeURIComponent(SELECTED)}`);
+  if (r.error) return;
+  LAST = r;
+  $("d-name").textContent = r.name; $("d-status").innerHTML = st(r.status); $("d-dir").textContent = r.dir;
+  $("d-badge").innerHTML = r.recipe_default ? `<span class="badge ok">Dataset recipe</span>` : `<span class="badge custom">Custom</span>`;
+  $("b-stop").disabled = !r.alive; $("b-resume").disabled = r.alive || r.status === "finished"; $("b-export").disabled = r.alive || !r.outputs.length;
+  const t = r.totals;
+  $("k-eng").textContent = `${t.done} / ${t.engines}`; $("k-fl").textContent = t.flights.toLocaleString(); $("k-hr").textContent = t.hours.toLocaleString();
+  if (r.alive && r.last_start) { $("k-time").textContent = hms((Date.now() - new Date(r.last_start)) / 1000); $("k-time-l").textContent = "running for"; }
+  else if (r.wall_s) { $("k-time").textContent = hms(r.wall_s); $("k-time-l").textContent = "last run took"; }
+  else { $("k-time").textContent = "–"; $("k-time-l").textContent = "elapsed"; }
+  const data = r.changed.filter(c => c.kind === "physics" || c.kind === "overlay");
+  $("d-changes").innerHTML = data.length ? "Changed from the recipe: " + data.map(c => `<code>${esc(c.setting.replace(/^(physics|overlay)\./, ""))} = ${esc(JSON.stringify(c.value))}</code>`).join(" ") : "";
+  const tb = $("etab"); tb.innerHTML = "";
+  for (const e of r.engines) {
+    const hi = e.hi.length ? e.hi[e.hi.length - 1] : null, h0 = e.hi0 ?? (e.hi[0] ?? 1);
+    const wear = hi === null ? 0 : Math.max(0, Math.min(1, 1 - hi / h0));
+    const extra = e.status === "done" ? ` <span class="muted">· ${esc(e.limit)} limit</span>` : e.replacements ? ` <span class="muted">· replaced ${e.replacements}×</span>` : "";
+    tb.insertAdjacentHTML("beforeend", `<tr><td><span class="fam"><span class="dot" style="background:${famColor(e.family)}"></span>${e.family}</span></td>
+      <td>${e.unit}${e.engine_index !== e.slot ? ` <span class="muted">(engine ${e.engine_index})</span>` : ""}</td><td>${CLS[e.cls]}</td>
+      <td>${e.hi.length}</td><td>${e.onset ? `flight ${e.onset}` : "–"}</td><td>${hi === null ? "–" : hi.toFixed(3)}</td>
+      <td><span class="bar" title="${Math.round(wear * 100)}% of the health used"><i style="width:${Math.round(wear * 100)}%;background:${famColor(e.family)}"></i></span></td><td>${st(e.status)}${extra}</td></tr>`);
+  }
+  plot(r.engines);
+  $("outs").innerHTML = r.outputs.length ? r.outputs.map(o => {
+    const name = o.path.split(/[\\/]/).pop(), folder = o.path.slice(0, o.path.length - name.length - 1);
+    const tag = folder.includes("exports") ? "noise " + folder.split(/[\\/]/).pop() : "main";
+    return `<div class="file"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M5 2.5h6.5L15.5 6.5v11H5z"/><path d="M11.5 2.5v4h4"/></svg>
+      <div class="fp"><div class="fn">${esc(name)} <span class="muted" style="font-weight:400">· ${o.mb} MB · ${esc(tag)}</span></div><div class="fd mono" title="${esc(o.path)}">${esc(folder)}</div></div>
+      <button class="btn ghost" data-copy="${esc(o.path)}">Copy path</button></div>`;
+  }).join("") + `<div class="row2" style="margin-top:10px"><button class="btn" id="b-open"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M2 5.5V12a1.5 1.5 0 0 0 1.5 1.5h9A1.5 1.5 0 0 0 14 12V7a1.5 1.5 0 0 0-1.5-1.5H8L6.5 3.5h-3A1.5 1.5 0 0 0 2 5"/></svg>Open folder</button><span class="muted" style="font-size:12px">provenance.json next to each file lists the scenario and every changed setting.</span></div>`
+    : `<div class="muted" style="font-size:13px">The h5 files appear here when every engine has finished.</div>`;
+  document.querySelectorAll("[data-copy]").forEach(b => b.onclick = () => navigator.clipboard.writeText(b.dataset.copy).then(() => toast("Path copied")));
+  if ($("b-open")) $("b-open").onclick = () => api(`/api/runs/${encodeURIComponent(SELECTED)}/open`, {});
+  const lg = $("d-log"), atEnd = lg.scrollTop + lg.clientHeight >= lg.scrollHeight - 4;
+  lg.textContent = r.log.join("\n"); if (atEnd) lg.scrollTop = lg.scrollHeight;
+  clearTimeout(timer); timer = setTimeout(() => { refresh(); loadRuns(); }, r.alive ? 4000 : 20000);
+}
+
+/* ---------- chart: HI per flight, colour = fault type, crosshair + tooltip ---------- */
+function plot(engines) {
+  const svg = $("plot"), W = Math.max(300, svg.clientWidth || 600), H = 300, L = 44, R = 14, T = 14, B = 30;
+  svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
+  const n = Math.max(10, ...engines.map(e => e.hi.length));
+  const all = engines.flatMap(e => e.hi), ymax = Math.max(1, ...all), ymin = Math.min(-0.05, ...all);
+  const x = c => L + ((c - 1) / Math.max(1, n - 1)) * (W - L - R), y = v => T + (ymax - v) / (ymax - ymin) * (H - T - B);
+  let s = "";
+  for (const v of [0.25, 0.5, 0.75, 1]) s += `<line x1="${L}" x2="${W - R}" y1="${y(v)}" y2="${y(v)}" stroke="var(--grid)" stroke-width="1"/><text x="${L - 8}" y="${y(v) + 4}" text-anchor="end">${v.toFixed(2)}</text>`;
+  s += `<text x="${L - 8}" y="${y(0) + 4}" text-anchor="end">0</text>`;
+  const step = [1, 2, 5, 10, 20, 25, 50, 100].find(k => n / k <= 8) || 100;
+  for (let c = step; c <= n; c += step) s += `<text x="${x(c)}" y="${H - 9}" text-anchor="middle">${c}</text>`;
+  s += `<text x="${x(1)}" y="${H - 9}" text-anchor="middle">1</text>`;
+  s += `<line x1="${L}" x2="${W - R}" y1="${y(0)}" y2="${y(0)}" stroke="var(--crit)" stroke-width="1" stroke-dasharray="5 4" opacity=".75"/><text x="${L + 6}" y="${y(0) - 6}">end of life (HI = 0)</text>`;
+  engines.forEach(e => {
+    if (!e.hi.length) return;
+    const pts = e.hi.map((v, j) => `${x(j + 1).toFixed(1)},${y(v).toFixed(1)}`).join(" ");
+    s += `<polyline fill="none" stroke="${famColor(e.family)}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" points="${pts}"/>`;
+    const last = e.hi.length;
+    if (e.status === "done") s += `<circle cx="${x(last)}" cy="${y(e.hi[last - 1])}" r="4" fill="${famColor(e.family)}" stroke="var(--surface)" stroke-width="2"/>`;
+  });
+  if (!all.length) s += `<text x="${(L + W - R) / 2}" y="${H / 2 - 20}" text-anchor="middle">The first flight is being simulated…</text>`;
+  s += `<line id="xh" y1="${T}" y2="${H - B}" stroke="var(--axis)" stroke-width="1" visibility="hidden"/><g id="xd"></g><rect id="hit" x="${L}" y="0" width="${W - L - R}" height="${H}" fill="transparent"/>`;
+  svg.innerHTML = s;
+  const fams = [...new Set(engines.map(e => e.family))];
+  $("legend").innerHTML = fams.map(f => `<span><i style="background:${famColor(f)}"></i>${f} · ${FAM[f]?.long || ""} <span class="muted">(${engines.filter(e => e.family === f).length})</span></span>`).join("") +
+    `<span><svg width="16" height="8"><circle cx="8" cy="4" r="3.5" fill="var(--muted)"/></svg>end of life reached</span>`;
+  const hit = svg.querySelector("#hit"), tip = $("tip"), xh = svg.querySelector("#xh"), xd = svg.querySelector("#xd");
+  const hide = () => { tip.hidden = true; xh.setAttribute("visibility", "hidden"); xd.innerHTML = ""; };
+  hit.onmousemove = ev => {
+    const rect = svg.getBoundingClientRect(), px = (ev.clientX - rect.left) * W / rect.width;
+    const c = Math.max(1, Math.min(n, Math.round(1 + (px - L) / (W - L - R) * (n - 1))));
+    const rows = engines.map(e => ({e, v: e.hi[c - 1]})).filter(r => r.v !== undefined).sort((a, b) => a.v - b.v);
+    if (!rows.length) return hide();
+    xh.setAttribute("x1", x(c)); xh.setAttribute("x2", x(c)); xh.setAttribute("visibility", "visible");
+    xd.innerHTML = rows.slice(0, 12).map(r => `<circle cx="${x(c)}" cy="${y(r.v)}" r="4" fill="${famColor(r.e.family)}" stroke="var(--surface)" stroke-width="2"/>`).join("");
+    tip.innerHTML = `<div class="t">Flight ${c}</div>` + rows.slice(0, 8).map(r => `<div class="r"><i style="background:${famColor(r.e.family)}"></i>${r.e.family} unit ${r.e.unit}<b>${r.v.toFixed(3)}</b></div>`).join("") + (rows.length > 8 ? `<div class="muted">+${rows.length - 8} more</div>` : "");
+    tip.hidden = false;
+    const cx = (x(c) / W) * rect.width, tw = tip.offsetWidth;
+    tip.style.left = (cx + 14 + tw > rect.width ? cx - tw - 14 : cx + 14) + "px"; tip.style.top = "8px";
+  };
+  hit.onmouseleave = hide;
+}
+
+(async function init() {
+  META = await api("/api/meta");
+  $("rootdir").textContent = META.root;
+  $("paper2").innerHTML = ["Climate (hot / cold operators)", "Airport altitude", "Fleet scatter", "Maintenance (wash, shop visit)", "Bird strike / FOD events",
+    "Gearbox wear", "Nozzle erosion", "Bleed-valve and fan-nozzle actuators", "Combustor", "Sensor faults (bias, drift, stuck)", "Label noise"].map(t => `<span class="pill">${t}</span>`).join("");
+  SC = clone(META.defaults);
+  buildTiles(); bind(); onChange(true);
+  const runs = await loadRuns(); if (runs.length) select(runs[0].name);
+})();
+</script>
+</body>
+</html>
