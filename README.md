@@ -17,7 +17,8 @@ v1.1: HPTLPT, LPCHPC, ALL). The files use the N-CMAPSS layout.
 | `scripts/agtf30_recipe/` | Recipe studies: throttle mapping, limits sweep, wear and life model, fault onset, sensor noise, sensor map, v1.1 sweeps | the C programs, N-CMAPSS |
 | `scripts/agtf30_gen/` | Generator: flight library, engine sampler, per-flight engine loop with checkpoints, parallel/SLURM runs, merge into `.h5`, checks, drop analysis, reference-point repair | the C programs, N-CMAPSS |
 | `scripts/agtf30_release/` | Freezing the release, nested scaling subsets, statistics and figures, baseline, release check, licence files | the generated files |
-| `scripts/agtf30_learn/` | Loader (`agtf30_data.py`) and learnability check (`learn_check.py`) | numpy, h5py, torch |
+| `scripts/agtf30_learn/` | Loader (`agtf30_data.py`), learnability check (`learn_check.py`) and age-only baselines (`age_baseline.py`) | numpy, h5py, torch |
+| `scripts/agtf30_figures/` | The paper's figures and the numbers behind them (see "Reproduce the paper's figures") | numpy, h5py, matplotlib |
 | `scripts/agtf30_mixer/` | Scenario mixer: local web page and command line to run engines to failure with the dataset recipe or your own settings, and a bit-for-bit check against the release (see "Scenario mixer") | the C programs, the flight library; numpy, h5py, scipy |
 | `notebooks/` | `example_read_one_engine.ipynb`: read one engine and plot it | numpy, h5py, matplotlib |
 
@@ -43,6 +44,36 @@ python scripts/agtf30_learn/learn_check.py --h5 <folder with AGTF30_*.h5> --out 
 
 It trains on the development engines of every file in the folder and tests on the test engines. Results go to
 `learn_out/learn.json`; compare with `provenance/learn*.json` in the dataset.
+
+The age-only baselines of the paper (no sensor data: mean remaining life of the development engines still flying at
+the test flight's age, overall and per flight-length class) need only the per-engine tables:
+
+```bash
+python scripts/agtf30_learn/age_baseline.py --h5 <folder with all eight AGTF30_*.h5> --out age_baseline.json     --pred learn_out/pred_res.npz      # optional: confirms the same test targets as learn_check.py
+```
+
+## Reproduce the paper's figures
+
+All seven figures, and `fig_numbers.json` with the numbers quoted from them, come from `scripts/agtf30_figures/`.
+Put the two released folders under the work root as `$AGTF30_WORK/agtf30_v1` (v1.0: FAN, HPC, HPT, LPT, MIX) and
+`$AGTF30_WORK/agtf30_v11` (v1.1: HPTLPT, LPCHPC, ALL), and links to (or copies of) all eight files in one folder,
+here `$AGTF30_WORK/agtf30_all_links`. N-CMAPSS is needed for the comparison figure (`NCMAPSS_DIR`, see "Paths and
+settings"). Then:
+
+```bash
+export AGTF30_WORK=/path/to/work
+# 1. per-engine statistics of all eight subsets and the nine N-CMAPSS files (one engine in memory at a time)
+python scripts/agtf30_release/e3_stats.py --out "$AGTF30_WORK/agtf30_v11_work/e3"     --h5 "$AGTF30_WORK/agtf30_all_links" --fams HPT,HPC,LPT,FAN,MIX,HPTLPT,LPCHPC,ALL
+# 2. the example flight (Fig. 2) and the fan-speed sample (Fig. 4: every 50th second of every engine)
+python scripts/agtf30_figures/extract_flight.py
+python scripts/agtf30_figures/extract_fan.py
+# 3. draw the figures (PNG at 600 dpi and PDF) and write fig_numbers.json
+AGTF30_FIGOUT=figures_out python scripts/agtf30_figures/make_figs.py
+```
+
+Figure 1 is a drawing. Figure 2 uses the example flight; Figures 3, 4a, 5 and 7 use step 1; Figure 4b–c uses the
+fan-speed sample; Figure 6 reads `provenance/judge*.json` of the two releases. Each script's docstring lists its
+inputs.
 
 ## Paths and settings
 
@@ -78,6 +109,7 @@ MATLAB scripts read the same variables through `cb_env.m`.
    (submit from `$AGTF30_SCRATCH/agtf30_v11`).
 4. **Release**: `e1_freeze.py`, `e2_scaling.py`, `e3_stats.py`, `e3_report.py`, `e4_baseline.py`,
    `e6_release_check.py`, `e7_licence.py`; v1.1: `v11_release.py`.
+5. **Paper**: `scripts/agtf30_figures/` (figures) and `scripts/agtf30_learn/age_baseline.py` (see above).
 
 Runs on Windows default to Idle CPU priority (`--priority`).
 
